@@ -83,6 +83,32 @@ Once the server is running, you can explore the interactive API documentation at
 
 Models are automatically downloaded from Hugging Face on first run. You can configure model paths and specific model IDs in `server.py` and `docker-compose.yml`.
 
+## 🆘 Troubleshooting
+
+### Error: `could not select device driver "nvidia"`
+If you see this error when running `docker-compose up`, it means Docker cannot find the NVIDIA driver on your host.
+
+**The Fix: Install NVIDIA Container Toolkit**
+1.  **Linux**: Follow the [official NVIDIA installation guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
+2.  **Windows (WSL2)**: Ensure you are using Docker Desktop and have "Use the WSL 2 based engine" enabled in Settings.
+3.  **Restart**: After installation, restart Docker:
+    ```bash
+    sudo systemctl restart docker
+    ```
+
+### Running in CPU-Only Mode
+If you don't have an NVIDIA GPU or can't get the driver working, you can force CPU mode:
+1.  Open `docker-compose.yml`.
+2.  **Remove** the `deploy:` section (lines 19-25) that reserves the GPU.
+3.  Restart the container: `docker-compose up -d`.
+*Note: Image generation will be significantly slower.*
+
+### VRAM Out of Memory
+If you have 4GB VRAM and experience crashes:
+- Ensure no other GPU-heavy apps are running.
+- Stick to 512x512 resolution.
+- The backend automatically uses attention slicing to save memory.
+
 ---
 
 *Part of the SDWorks ecosystem.*
