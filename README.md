@@ -63,11 +63,12 @@ python server.py
 ### Frontend
 Simply open `index.html` in any modern web browser. It connects to `http://localhost:7860` by default.
 
-## 🧩 Components
+## 🧩 Component Details
 
-- **Frontend**: Vanilla HTML5, CSS3, and JavaScript. No heavy frameworks, just pure performance.
-- **Backend**: FastAPI, PyTorch, and Hugging Face `diffusers`.
-- **Infrastructure**: Nginx and Docker for seamless serving.
+For a deeper dive into the technical implementation and specific configurations of each layer, please see the dedicated guides:
+
+- **[Frontend Documentation](frontend.md)**: Details on the UI stack, Glassmorphism design, and state management.
+- **[Backend Documentation](backend.md)**: Details on the FastAPI server, Diffusers optimization, and API specifications.
 
 ## 🤝 Contributing
 
