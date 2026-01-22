@@ -14,6 +14,21 @@ A premium, modern, and standalone web interface for Stable Diffusion. Designed f
 - **🐳 Docker Ready**: Full stack deployment with a single command.
 - **📱 Responsive Design**: Works beautifully on desktops, tablets, and phones.
 
+## 💻 Hardware Requirements
+
+To run **SDWorks** locally, the following specifications are recommended:
+
+### Minimum
+- **GPU**: NVIDIA GPU with 4GB VRAM (or Apple Silicon Mac)
+- **RAM**: 8GB System Memory
+- **Storage**: 10GB free space for model weights
+- **CPU Mode**: Supported as fallback (slower generation times)
+
+### Recommended
+- **GPU**: NVIDIA GPU with 8GB+ VRAM (RTX 3060 or better)
+- **RAM**: 16GB+ System Memory
+- **CUDA**: Version 11.8 or 12.1 installed
+
 ## 🚀 Quick Start
 
 The easiest way to get started is using Docker.
