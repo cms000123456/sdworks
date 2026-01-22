@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Meta Tags -->
+    <meta name="description"
+        content="Premium Stable Diffusion web interface for AI image generation with advanced controls and stunning UI">
+    <meta name="keywords" content="Stable Diffusion, AI Image Generation, Text to Image, AI Art">
+    <meta name="author" content="SDWorks">
+
+    <title>SDWorks - AI Image Generation</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css?v=9">
+</head>
+
+<body>
+    <div class="container">
+
+        <!-- Dashboard Layout -->
+        <div class="dashboard-layout">
+            <!-- Sidebar: Controls -->
+            <aside class="sidebar">
+                <!-- Model Selection -->
+                <div class="glass-card compact" style="margin-bottom: var(--spacing-md);">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--spacing-xs);">
+                        <h2 class="glass-card-title" style="margin-bottom: 0; font-size: 0.9rem;">🤖 Model</h2>
+                        <span id="modelStatus" class="loading-spinner hidden" style="width: 14px; height: 14px;"></span>
+                    </div>
+                    <input type="text" id="modelSearchInput" class="form-input form-input-sm"
+                        placeholder="Search models..." style="margin-bottom: 0.5rem; display: none;">
+                    <select id="modelSelect" class="form-select form-select-sm">
+                        <option value="" disabled selected>Loading models...</option>
+                    </select>
+                </div>
+
+                <!-- LoRA Management -->
+                <div class="glass-card compact" style="margin-bottom: var(--spacing-md);">
+                    <div class="form-group mb-0">
+                        <label class="form-label"
+                            style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem;">
+                            🎨 LoRAs context
+                            <button type="button" class="btn btn-secondary btn-xs" id="addLoraBtn">+</button>
+                        </label>
+                        <div id="activeLorasList"
+                            style="display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.25rem;">
+                            <div id="noLorasMessage" class="text-muted"
+                                style="font-size: 0.7rem; text-align: center; padding: 0.3rem; border: 1px dashed rgba(255,255,255,0.1); border-radius: 4px;">
+                                No LoRAs
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mode Selection -->
+                <div class="glass-card compact mb-sm">
+                    <div class="btn-group" role="group" style="width: 100%;">
+                        <input type="radio" class="btn-check" name="mode" id="modeTxt2Img" autocomplete="off" checked>
+                        <label class="btn btn-outline-primary btn-sm" for="modeTxt2Img">Text to Image</label>
+
+                        <input type="radio" class="btn-check" name="mode" id="modeImg2Img" autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="modeImg2Img">Image to Image</label>
+                    </div>
+                </div>
+
+                <!-- Image Upload (Img2Img) -->
+                <div id="img2imgContainer" class="glass-card compact mb-sm" style="display: none;">
+                    <div id="dropZone" class="drop-zone">
+                        <div class="drop-zone-content">
+                            <i class="fas fa-cloud-upload-alt"
+                                style="font-size: 2rem; margin-bottom: 0.5rem; color: var(--text-muted);"></i>
+                            <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Drop image or click to
+                                upload</p>
+                            <input type="file" id="initImageInput" accept="image/*" style="display: none;">
+                        </div>
+                        <img id="initImagePreview"
+                            style="display: none; width: 100%; height: auto; border-radius: 8px;">
+                        <button id="removeInitImageBtn" class="btn btn-secondary btn-xs"
+                            style="position: absolute; top: 5px; right: 5px; display: none;">✕</button>
+                    </div>
+
+                    <div class="form-group mt-sm">
+                        <label for="denoisingStrength" class="form-label" style="font-size: 0.7rem;">Denoising
+                            Strength</label>
+                        <div class="input-group">
+                            <input type="range" id="denoisingStrength" class="form-range" min="0" max="1" step="0.05"
+                                value="0.75">
+                            <span class="input-value-display" id="denoisingStrengthValue"
+                                style="font-size: 0.9rem; min-width: 30px;">0.75</span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button type="button" class="btn btn-secondary btn-xs" id="interrogateBtn" style="flex: 1;"
+                            title="Describe image to prompt">🔍 Interrogate</button>
+                    </div>
+                </div>
+
+
+
+                <!-- Parameters -->
+                <div class="glass-card compact">
+                    <h2 class="glass-card-title" style="font-size: 0.9rem;">Parameters</h2>
+
+                    <div class="form-group mb-sm">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;">
+                            <button type="button" class="btn btn-secondary btn-xs" id="presetPortrait">👤
+                                Portrait</button>
+                            <button type="button" class="btn btn-secondary btn-xs" id="presetLandscape">🏞️
+                                Landscape</button>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <!-- Style -->
+                        <!-- Style -->
+                        <div class="form-group mb-sm">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label for="styleSelect" class="form-label"
+                                    style="font-size: 0.7rem; margin-bottom: 0;">Style</label>
+                                <button type="button" class="btn btn-secondary btn-xs" id="saveStyleBtn"
+                                    title="Save current prompts as a new style preset"
+                                    style="padding: 0 6px; font-size: 0.7rem;">+ Save Preset</button>
+                            </div>
+                            <select id="styleSelect" class="form-select form-select-sm" style="margin-top: 0.25rem;">
+                                <option value="None">None</option>
+                                <!-- Styles populated by JS -->
+                            </select>
+                        </div>
+
+                        <!-- Sampler -->
+                        <div class="form-group mb-sm">
+                            <label for="samplerSelect" class="form-label" style="font-size: 0.7rem;">Sampler</label>
+                            <select id="samplerSelect" class="form-select form-select-sm">
+                                <option value="DPM++ 2M Karras">DPM++ 2M Karras</option>
+                                <option value="Euler a">Euler a</option>
+                                <option value="Euler">Euler</option>
+                                <option value="DDIM">DDIM</option>
+                            </select>
+                        </div>
+
+                        <!-- Steps -->
+                        <div class="form-group mb-sm">
+                            <label for="stepsInput" class="form-label" style="font-size: 0.7rem;">Steps</label>
+                            <input type="number" id="steps_num" class="form-input form-input-sm" value="20"
+                                style="display: none;">
+                            <div class="input-group">
+                                <input type="range" id="stepsInput" class="form-range" min="1" max="150" value="20">
+                                <span class="input-value-display" id="stepsValue"
+                                    style="font-size: 0.9rem; min-width: 30px;">20</span>
+                            </div>
+                        </div>
+
+                        <!-- CFG -->
+                        <div class="form-group mb-sm">
+                            <label for="cfgScale" class="form-label" style="font-size: 0.7rem;">CFG</label>
+                            <div class="input-group">
+                                <input type="range" id="cfgScale" class="form-range" min="1" max="30" step="0.5"
+                                    value="7">
+                                <span class="input-value-display" id="cfgScaleValue"
+                                    style="font-size: 0.9rem; min-width: 30px;">7.0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-sm">
+                        <label class="form-label" style="font-size: 0.7rem;">Dimensions</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <select id="width" class="form-select form-select-sm">
+                                <option value="512">512</option>
+                                <option value="768">768</option>
+                                <option value="896">896</option>
+                                <option value="1024">1024</option>
+                                <option value="1152">1152</option>
+                            </select>
+                            <select id="height" class="form-select form-select-sm">
+                                <option value="512">512</option>
+                                <option value="768">768</option>
+                                <option value="896">896</option>
+                                <option value="1024">1024</option>
+                                <option value="1152">1152</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-sm">
+                        <label for="seed" class="form-label" style="font-size: 0.7rem;">Seed</label>
+                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; align-items: center;">
+                            <input type="number" id="seed" class="form-input form-input-sm" placeholder="-1" value="-1">
+                            <button type="button" class="btn btn-secondary btn-xs" id="randomSeedBtn">🎲</button>
+                        </div>
+                    </div>
+
+
+                    <div class="form-group mb-0">
+                        <label for="batchSize" class="form-label" style="font-size: 0.7rem;">Count</label>
+                        <select id="batchSize" class="form-select form-select-sm">
+                            <option value="1">1</option>
+                            <option value="4">4</option>
+                            <option value="8">8</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <!-- Save Default Button (Outside card to prevent overflow issues) -->
+                <button type="button" id="saveDefaultsBtn" class="btn btn-secondary btn-sm"
+                    style="width: 100%; margin-top: 0.5rem; border: 1px solid var(--glass-border); box-shadow: var(--shadow-sm);"
+                    title="Save current parameters as startup defaults">💾 Save Settings as Default</button>
+            </aside>
+
+            <!-- Main View: Generation & Gallery -->
+            <main class="generation-view">
+                <!-- Prompt Input -->
+                <div id="promptContainer" class="glass-card compact">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <h2 class="glass-card-title" style="font-size: 0.9rem; margin: 0;">Prompt</h2>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary btn-xs" id="loadPromptBtn"
+                                title="Load Saved Prompt">📂</button>
+                            <button class="btn btn-primary btn-xs" id="savePromptBtn"
+                                title="Save Current Prompt">💾</button>
+                            <button class="btn btn-secondary btn-xs" id="toggleHelperBtn" title="Open Prompt Helper">✨
+                                Helper</button>
+                        </div>
+                    </div>
+
+                    <!-- Prompt Helper Panel -->
+                    <div id="promptHelper" class="prompt-helper hidden">
+                        <div class="helper-tabs">
+                            <button class="helper-tab active" data-cat="Subject">👤</button>
+                            <button class="helper-tab" data-cat="Artstyle">🎨</button>
+                            <button class="helper-tab" data-cat="Lighting">💡</button>
+                            <button class="helper-tab" data-cat="Camera">📷</button>
+                            <button class="helper-tab" data-cat="Mood">🎭</button>
+                            <button class="helper-tab" data-cat="Quality">⭐</button>
+                        </div>
+                        <div id="helperTags" class="helper-tags">
+                            <!-- Tags will be injected here -->
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-sm">
+                        <label for="prompt" class="form-label" style="font-size: 0.75rem; color: var(--text-muted);">
+                            Core Subject <span style="font-weight: normal; opacity: 0.6;">(Static)</span>
+                        </label>
+                        <textarea id="prompt" class="form-textarea" placeholder="What is the main subject?"
+                            rows="2"></textarea>
+                    </div>
+
+                    <div class="form-group mb-sm">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                            <label for="refinementPrompt" class="form-label"
+                                style="font-size: 0.75rem; color: var(--accent-primary); margin: 0;">
+                                Artistic Refinement <span style="font-weight: normal; opacity: 0.6;">(Dynamic)</span>
+                            </label>
+                            <button class="btn btn-secondary btn-xs" id="magicPromptBtn"
+                                style="padding: 2px 8px; font-size: 0.65rem; background: rgba(var(--accent-primary-rgb), 0.1); border: 1px solid rgba(var(--accent-primary-rgb), 0.2);"
+                                title="Expand prompt using AI">🪄 Magic Expand</button>
+                        </div>
+                        <textarea id="refinementPrompt" class="form-textarea"
+                            style="border-color: rgba(var(--accent-primary-rgb), 0.2);"
+                            placeholder="Styles, lighting, details... (Magic Expand fills this)" rows="2"></textarea>
+                        <div class="text-muted"
+                            style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-top: 0.25rem;">
+                            <span>Combined: <span id="charCount">0</span> chars</span>
+                            <span id="clearRefinementBtn"
+                                style="cursor: pointer; color: var(--accent-primary); opacity: 0.8;">✕ Clear
+                                Refined</span>
+                        </div>
+                    </div>
+                    <div class="form-group mb-sm">
+                        <label for="negativePrompt" class="form-label" style="font-size: 0.7rem;">Negative
+                            Prompt</label>
+                        <textarea id="negativePrompt" class="form-textarea"
+                            rows="2">lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, artist name, malformed hands, long neck, morphed, distorted, deformed</textarea>
+                    </div>
+                </div>
+
+                <div class="generation-header glass-card compact">
+                    <button type="button" class="btn btn-primary btn-large btn-generate" id="generateBtn">
+                        <span id="generateBtnText">✨ Generate Images</span>
+                        <span id="generateBtnSpinner" class="loading-spinner hidden"></span>
+                    </button>
+                </div>
+
+                <div class="glass-card" style="min-height: 500px; position: relative; margin-top: var(--spacing-md);">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+                        <h2 class="glass-card-title" style="margin-bottom: 0;">🖼️ Gallery</h2>
+                        <div id="galleryActions" class="hidden">
+                            <!-- Download all or other actions -->
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="emptyState" class="text-center" style="padding: var(--spacing-3xl) var(--spacing-xl);">
+                        <div style="font-size: 4rem; margin-bottom: var(--spacing-lg); opacity: 0.5;">🎨</div>
+                        <h3 style="color: var(--color-text-secondary); margin-bottom: var(--spacing-sm);">No images yet
+                        </h3>
+                        <p class="text-muted">Adjust settings and click generate to create art</p>
+                    </div>
+
+                    <!-- Gallery Grid -->
+                    <div id="galleryGrid" class="gallery-grid hidden"></div>
+
+                    <!-- Loading Overlay -->
+                    <div id="loadingOverlay" class="loading-overlay hidden">
+                        <div class="loading-spinner-large"></div>
+                        <p style="color: var(--color-text-secondary); font-weight: 500;">Generating images...</p>
+                        <p class="text-muted" style="font-size: 0.875rem;">This may take a moment</p>
+                    </div>
+                </div>
+
+                <!-- Last Generation Info -->
+                <div id="generationInfo" class="glass-card compact hidden" style="margin-top: var(--spacing-md);">
+                    <h3 class="glass-card-title" style="font-size: 0.9rem;">📊 Generation Info</h3>
+                    <div id="generationDetails" style="font-size: 0.8rem; color: var(--color-text-secondary);"></div>
+                </div>
+            </main>
+
+            <!-- Right Sidebar: Advanced Tabs -->
+            <aside class="right-sidebar">
+                <!-- Advanced Tabs -->
+                <div class="glass-card compact">
+                    <div
+                        style="display: flex; gap: 0.75rem; margin-bottom: var(--spacing-sm); border-bottom: 1px solid var(--glass-border);">
+                        <button class="tab-btn active" data-tab="upload" style="font-size: 0.8rem;">Upload</button>
+                        <button class="tab-btn" data-tab="download" style="font-size: 0.8rem;">Download</button>
+                        <button class="tab-btn" data-tab="api" style="font-size: 0.8rem;">API</button>
+                    </div>
+
+                    <div id="uploadTab" class="tab-content">
+                        <div style="display: flex; gap: 0.4rem;">
+                            <input type="file" id="modelUploadInput" style="display: none;">
+                            <button type="button" class="btn btn-secondary btn-xs" id="browseModelBtn"
+                                style="flex: 1;">📂 Browse</button>
+                            <button type="button" class="btn btn-primary btn-xs" id="uploadModelBtn">⬆️</button>
+                        </div>
+                    </div>
+
+                    <div id="downloadTab" class="tab-content hidden">
+                        <!-- Direct Link Download -->
+                        <div class="form-group mb-sm">
+                            <label class="form-label" style="font-size: 0.65rem;">Direct Link (Civitai/etc)</label>
+                            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                                <input type="text" id="directDownloadUrl" class="form-input form-input-sm"
+                                    placeholder="Paste download URL here...">
+                                <div style="display: flex; gap: 0.4rem;">
+                                    <select id="directDownloadType" class="form-select form-select-sm" style="flex: 1;">
+                                        <option value="Checkpoint">Checkpoint</option>
+                                        <option value="LoRA">LoRA</option>
+                                    </select>
+                                    <button type="button" class="btn btn-primary btn-xs" id="directDownloadBtn"
+                                        style="padding: 0 1rem;">⬇️ Download</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Civitai Search -->
+                        <div class="form-group mb-0">
+                            <label class="form-label" style="font-size: 0.65rem;">Search Civitai</label>
+                            <div style="display: flex; gap: 0.4rem;">
+                                <input type="text" id="civitaiSearchInput" class="form-input form-input-sm"
+                                    placeholder="Search...">
+                                <button type="button" class="btn btn-primary btn-xs" id="civitaiSearchBtn">🔍</button>
+                            </div>
+                            <div id="civitaiResults"
+                                style="max-height: 120px; overflow-y: auto; margin-top: 0.5rem; font-size: 0.75rem;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="apiTab" class="tab-content hidden">
+                        <input type="text" id="apiEndpoint" class="form-input form-input-sm"
+                            value="http://localhost:7860">
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Right Sidebar: Info & Stats -->
+            <aside class="sidebar sidebar-right">
+                <!-- Generation Info -->
+                <div id="generationInfo" class="glass-card compact hidden">
+                    <h3 class="glass-card-title" style="font-size: 0.9rem;">📊 Generation Info</h3>
+                    <div id="generationDetails" style="font-size: 0.8rem; color: var(--color-text-secondary);"></div>
+                </div>
+
+
+            </aside>
+        </div>
+
+        <footer
+            style="text-align: center; margin-top: 2rem; padding: 1rem 0; color: var(--color-text-secondary); font-size: 0.8rem; border-top: 1px solid var(--glass-border);">
+            <div style="opacity: 0.7;">
+                SDWorks <span id="appVersion"
+                    style="font-family: var(--font-mono); font-weight: bold; color: var(--color-accent-primary);">v3.13</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Image Modal (for full-size preview) -->
+    <div id="imageModal" class="hidden" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(10, 10, 15, 0.95);
+        backdrop-filter: blur(20px);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--spacing-xl);
+    ">
+        <div style="position: relative; max-width: 90vw; max-height: 90vh;">
+            <img id="modalImage" src="" alt="Full size preview" style="
+                max-width: 100%;
+                max-height: 90vh;
+                border-radius: var(--radius-lg);
+                box-shadow: var(--shadow-lg);
+            ">
+            <button id="closeModal" class="btn btn-secondary" style="position: absolute; top: -50px; right: 0;">
+                ✕ Close
+            </button>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer"></div>
+
+    <!-- LoRA Selection Modal -->
+    <div id="loraModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Select LoRA</h3>
+                <button class="btn btn-secondary btn-sm" id="closeLoraModalBtn">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="loraSearchInput" class="form-input mb-sm" placeholder="Search LoRAs...">
+                <div id="loraList" style="max-height: 400px; overflow-y: auto;">
+                    <!-- LoRAs will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saved Prompts Modal -->
+    <div id="promptsModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Saved Prompts</h3>
+                <button class="btn btn-secondary btn-sm" id="closePromptsModalBtn">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="promptsList" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Saved prompts will be populated here -->
+                    <p class="text-muted text-center">No saved prompts yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="app.js?v=20"></script>
+</body>
+
+</html>

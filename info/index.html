@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDWorks | Modern AI Art Interface</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="glow-bg"></div>
+
+    <nav class="glass-nav">
+        <div class="nav-content">
+            <div class="logo">🎨 <span>SDWorks</span></div>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#setup">Setup</a>
+                <a href="#api">API</a>
+                <a href="https://github.com/cms000123456/sdworks" class="btn-github"><i class="fab fa-github"></i>
+                    GitHub</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-content">
+            <h1 class="reveal-text">Experience AI Art <br><span class="accent">Without Friction</span></h1>
+            <p class="hero-sub">A premium, high-performance web interface for Stable Diffusion. Designed for creators,
+                powered by modern technology.</p>
+            <div class="hero-actions">
+                <a href="#setup" class="btn btn-primary">Get Started</a>
+                <a href="#features" class="btn btn-secondary">Explore Features</a>
+            </div>
+        </div>
+        <div class="hero-preview">
+            <div class="glass-mockup">
+                <div class="mockup-header">
+                    <div class="dots"><span class="red"></span><span class="yellow"></span><span class="green"></span>
+                    </div>
+                </div>
+                <!-- This would be a screenshot in the final repo -->
+                <div class="mockup-body">
+                    <img src="https://raw.githubusercontent.com/cms000123456/sdworks/main/preview.png" alt="App Preview"
+                        class="preview-img">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section id="features" class="features-section">
+        <div class="section-header">
+            <h2 class="section-title">Why choose SDWorks??</h2>
+            <p class="section-subtitle">We focused on what matters: speed, beauty, and control.</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card glass">
+                <div class="icon-box"><i class="fas fa-magic"></i></div>
+                <h3>Magic Expand</h3>
+                <p>Don't struggle with prompts. Our AI-powered magic expander turns simple keywords into descriptive art
+                    prompts.</p>
+            </div>
+            <div class="feature-card glass">
+                <div class="icon-box"><i class="fas fa-layer-group"></i></div>
+                <h3>LoRA Power</h3>
+                <p>Native support for LoRAs with an intuitive search and management system. Stack styles effortlessly.
+                </p>
+            </div>
+            <div class="feature-card glass">
+                <div class="icon-box"><i class="fas fa-bolt"></i></div>
+                <h3>Standalone Performance</h3>
+                <p>Built with Vanilla JS and CSS. No heavy frameworks means the UI feels snappier and loads faster.</p>
+            </div>
+            <div class="feature-card glass">
+                <div class="icon-box"><i class="fas fa-cube"></i></div>
+                <h3>Docker Native</h3>
+                <p>Everything you need in one package. Python backend, Nginx frontend, and model weights management.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="setup" class="setup-section">
+        <div class="section-header">
+            <h2 class="section-title">Get Started in Seconds</h2>
+        </div>
+        <div class="setup-content">
+            <div class="terminal-container glass">
+                <div class="terminal-header">
+                    <span>bash</span>
+                </div>
+                <div class="terminal-body">
+                    <code class="command">$ git clone git@github.com:cms000123456/sdworks.git</code>
+                    <code class="command">$ cd sdworks</code>
+                    <code class="command">$ docker-compose up -d</code>
+                    <code class="output">Building containers... Done.</code>
+                    <code class="output">SDWorks is running on http://localhost:8080</code>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <p>&copy; 2026 SDWorks. Created for the future of digital art.</p>
+            <div class="footer-links">
+                <a href="#"><i class="fab fa-twitter"></i></a>
+                <a href="#"><i class="fab fa-discord"></i></a>
+                <a href="#"><i class="fab fa-github"></i></a>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>

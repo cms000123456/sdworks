@@ -1,0 +1,29 @@
+# Stable Diffusion Backend Requirements
+
+# Core
+fastapi==0.109.2
+uvicorn==0.27.1
+python-multipart==0.0.9
+
+# AI/ML
+# Pin numpy < 2.0 to avoid compatibility issues with older libs
+numpy<2.0.0
+# Pin diffusers and huggingface-hub to compatible versions
+diffusers==0.26.3
+transformers==4.38.1
+accelerate==0.27.2
+huggingface-hub==0.23.2
+safetensors==0.4.2
+peft==0.9.0
+
+# Image Processing
+Pillow==10.2.0
+
+# Torch (will be installed from base image in Docker, but good for local)
+torch==2.2.0 --index-url https://download.pytorch.org/whl/cu121
+torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu121
+xformers==0.0.24 --index-url https://download.pytorch.org/whl/cu121
+
+# Utilities
+pydantic==2.5.0
+httpx==0.27.0
