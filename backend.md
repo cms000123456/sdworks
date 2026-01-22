@@ -32,6 +32,34 @@ The backend acts as the bridge between the UI and the underlying AI models. It i
 - **CUDA**: 11.8 or 12.1 (for GPU acceleration)
 - **Python**: 3.10+
 
+## ⚡ CUDA Installation Guide
+
+If you have an NVIDIA GPU, follow these steps to enable hardware acceleration:
+
+### 1. Identify your GPU
+Ensure your GPU supports CUDA (most NVIDIA cards from the last 10 years do). Check your model on the [NVIDIA website](https://developer.nvidia.com/cuda-gpus).
+
+### 2. Install NVIDIA Drivers
+Download and install the latest drivers for your specific card: [NVIDIA Driver Downloads](https://www.nvidia.com/download/index.aspx).
+
+### 3. Install CUDA Toolkit
+We recommend **CUDA 12.1** for the best compatibility with modern PyTorch:
+1. Go to the [CUDA Toolkit Archive](https://developer.nvidia.com/cuda-toolkit-archive).
+2. Select **CUDA Toolkit 12.1.0**.
+3. Choose your OS and follow the installation instructions. 
+
+### 4. Install cuDNN (Optional but Recommended)
+For extra performance:
+1. Download cuDNN from [NVIDIA Developer](https://developer.nvidia.com/cudnn).
+2. Copy the contents of the `bin`, `include`, and `lib` folders into the corresponding directories in your CUDA installation path (usually `C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.1`).
+
+### 5. Verify Installation
+Open a terminal and run:
+```bash
+nvidia-smi
+```
+This should display your GPU details and the installed CUDA version.
+
 ## 🚀 Setup & Installation
 
 ### Option 1: Docker (Recommended)

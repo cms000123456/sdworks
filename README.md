@@ -30,7 +30,7 @@ To run **SDWorks** locally, the following specifications are recommended:
 ### Recommended
 - **GPU**: NVIDIA GPU with 8GB+ VRAM (RTX 3060 or better)
 - **RAM**: 16GB+ System Memory
-- **CUDA**: Version 11.8 or 12.1 installed
+- **CUDA**: Version 11.8 or 12.1 installed (See [CUDA Installation Guide](backend.md#%E2%9A%A1-cuda-installation-guide))
 
 ## 🚀 Quick Start
 
