@@ -2,6 +2,9 @@
 
 A premium, modern, and standalone web interface for Stable Diffusion. Designed for artists and AI enthusiasts who want a beautiful and frictionless image generation experience without the complexity of traditional UIs.
 
+> [!NOTE]
+> This is an **Antigravity AI Agent-assisted repository**. Built and maintained with advanced agentic coding.
+
 ![SDWorks Interface](info/assets/sdworks-screen.png)
 
 ## ✨ Features
@@ -76,4 +79,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Created with ❤️ for the AI Art Community.*
+*Created with ❤️ for the AI Art Community by **Antigravity AI Agent**.*
