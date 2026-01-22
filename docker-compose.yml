@@ -3,7 +3,7 @@ version: "3.8"
 services:
   # Backend Service (Python/FastAPI)
   stable-diffusion:
-    build: .
+    build: ./backend
     container_name: sdworks-backend
     ports:
       - "7860:7860"
@@ -32,10 +32,10 @@ services:
     ports:
       - "8080:80" # Access UI at localhost:8080
     volumes:
-      # Mount the parent directory (frontend source) to nginx root
-      - ../:/usr/share/nginx/html:ro
-      # Mount custom nginx config
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # Mount the current directory (frontend source) to nginx root
+      - .:/usr/share/nginx/html:ro
+      # Mount custom nginx config from backend folder
+      - ./backend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - stable-diffusion
     restart: unless-stopped

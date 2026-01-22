@@ -64,7 +64,6 @@ This should display your GPU details and the installed CUDA version.
 
 ### Option 1: Docker (Recommended)
 ```bash
-cd backend
 docker-compose up -d
 ```
 The Docker setup handles all dependencies and environment configurations automatically.
