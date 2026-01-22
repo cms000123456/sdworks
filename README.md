@@ -2,7 +2,7 @@
 
 A premium, modern, and standalone web interface for Stable Diffusion. Designed for artists and AI enthusiasts who want a beautiful and frictionless image generation experience without the complexity of traditional UIs.
 
-![SDWorks Banner](info/assets/banner.png)
+![SDWorks Interface](info/assets/sdworks-screen.png)
 
 ## ✨ Features
 
