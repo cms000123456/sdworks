@@ -89,12 +89,25 @@ Models are automatically downloaded from Hugging Face on first run. You can conf
 If you see this error when running `docker-compose up`, it means Docker cannot find the NVIDIA driver on your host.
 
 **The Fix: Install NVIDIA Container Toolkit**
-1.  **Linux**: Follow the [official NVIDIA installation guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
-2.  **Windows (WSL2)**: Ensure you are using Docker Desktop and have "Use the WSL 2 based engine" enabled in Settings.
-3.  **Restart**: After installation, restart Docker:
-    ```bash
-    sudo systemctl restart docker
-    ```
+
+For Ubuntu/Debian based systems, run the following commands:
+```bash
+# 1. Setup the package repository
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+  sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+  sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+# 2. Install the toolkit
+sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
+
+# 3. Configure Docker
+sudo nvidia-ctk runtime configure --runtime=docker
+
+# 4. Restart Docker
+sudo systemctl restart docker
+```
+*For other distributions, see the [official NVIDIA installation guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).*
 
 ### Running in CPU-Only Mode
 If you don't have an NVIDIA GPU or can't get the driver working, you can force CPU mode:
