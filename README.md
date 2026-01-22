@@ -24,7 +24,7 @@ The easiest way to get started is using Docker.
 
 ### 2. Launch
 ```bash
-git clone git@github.com:cms000123456/sdworks.git
+git clone https://github.com/cms000123456/sdworks.git
 cd sdworks
 docker-compose up -d
 ```
