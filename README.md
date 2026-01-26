@@ -59,6 +59,22 @@ cd backend
 pip install -r requirements.txt
 python server.py
 ```
+Running in CPU-Only Mode
+
+If you don't have an NVIDIA GPU or can't get the driver working, you can force CPU mode:
+
+    Open docker-compose.yml.
+    Remove the deploy: section (lines 19-25) that reserves the GPU.
+    Restart the container: docker-compose up -d. Note: Image generation will be significantly slower.
+
+VRAM Out of Memory
+
+If you have 4GB VRAM and experience crashes:
+
+    Ensure no other GPU-heavy apps are running.
+    Stick to 512x512 resolution.
+    The backend automatically uses attention slicing to save memory.
+
 
 ### Frontend
 Simply open `index.html` in any modern web browser. It connects to `http://localhost:7860` by default.
