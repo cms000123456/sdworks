@@ -190,6 +190,10 @@ class StableDiffusionApp {
         this.directDownloadType = document.getElementById('directDownloadType');
         this.directDownloadBtn = document.getElementById('directDownloadBtn');
 
+        // Download Status elements
+        this.downloadStatusPanel = document.getElementById('downloadStatusPanel');
+        this.refreshDownloadsBtn = document.getElementById('refreshDownloadsBtn');
+
         // LoRA Elements
         this.addLoraBtn = document.getElementById('addLoraBtn');
         this.activeLorasList = document.getElementById('activeLorasList');
@@ -351,6 +355,11 @@ class StableDiffusionApp {
         // Direct Download listener
         if (this.directDownloadBtn) {
             this.directDownloadBtn.addEventListener('click', () => this.handleDirectDownload());
+        }
+
+        // Download status listeners
+        if (this.refreshDownloadsBtn) {
+            this.refreshDownloadsBtn.addEventListener('click', () => this.fetchDownloadStatus());
         }
 
         // Tab switching
@@ -1392,6 +1401,9 @@ class StableDiffusionApp {
         this.tabContents.forEach(content => {
             content.classList.toggle('hidden', content.id !== `${tabName}Tab`);
         });
+        if (tabName === 'download') {
+            this.fetchDownloadStatus();
+        }
     }
 
     // Search models on Civitai via backend proxy
@@ -1522,6 +1534,86 @@ class StableDiffusionApp {
             this.directDownloadBtn.disabled = false;
             this.directDownloadBtn.textContent = originalText;
         }
+    }
+
+    // Fetch download status from backend
+    async fetchDownloadStatus() {
+        if (!this.downloadStatusPanel) return;
+        try {
+            const response = await fetch(`${this.apiEndpoint}/sdapi/v1/download-status`);
+            if (!response.ok) throw new Error('Failed to fetch download status');
+            const statuses = await response.json();
+            this.renderDownloadStatus(statuses);
+        } catch (e) {
+            console.error('Download status fetch error:', e);
+            this.downloadStatusPanel.innerHTML = '<div class="text-muted" style="text-align: center; padding: 0.5rem;">Unable to load status</div>';
+        }
+    }
+
+    // Render download status items
+    renderDownloadStatus(statuses) {
+        if (!this.downloadStatusPanel) return;
+        if (!statuses || statuses.length === 0) {
+            this.downloadStatusPanel.innerHTML = '<div class="text-muted" style="text-align: center; padding: 0.5rem;">No active downloads</div>';
+            return;
+        }
+
+        this.downloadStatusPanel.innerHTML = '';
+        statuses.forEach(item => {
+            const el = document.createElement('div');
+            el.style.cssText = 'padding: 0.4rem 0.5rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px;';
+
+            const statusColor = item.status === 'completed' ? '#4ade80' : item.status === 'failed' ? '#f87171' : '#a78bfa';
+            const statusIcon = item.status === 'completed' ? '✓' : item.status === 'failed' ? '✕' : '⏳';
+            const progressBar = item.status === 'downloading' && item.total > 0
+                ? `<div style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 0.3rem; overflow: hidden;">
+                    <div style="width: ${item.progress}%; height: 100%; background: ${statusColor}; border-radius: 2px; transition: width 0.3s;"></div>
+                   </div>
+                   <div style="font-size: 0.6rem; color: var(--color-text-muted); margin-top: 0.15rem;">${this.formatBytes(item.downloaded)} / ${this.formatBytes(item.total)} · ${item.progress}%</div>`
+                : '';
+            const errorText = item.error ? `<div style="font-size: 0.6rem; color: #f87171; margin-top: 0.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${this.escapeHtml(item.error)}">${this.escapeHtml(item.error)}</div>` : '';
+
+            el.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.3rem;">
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-size: 0.72rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${this.escapeHtml(item.filename)}">${this.escapeHtml(item.filename)}</div>
+                        <div style="font-size: 0.6rem; color: ${statusColor}; margin-top: 0.1rem;">${statusIcon} ${item.status}${item.type ? ' · ' + item.type : ''}</div>
+                    </div>
+                    <button class="btn btn-secondary btn-xs clear-download-btn" data-filename="${this.escapeHtml(item.filename)}" style="padding: 2px 6px; font-size: 0.6rem; flex-shrink: 0;">✕</button>
+                </div>
+                ${progressBar}
+                ${errorText}
+            `;
+
+            el.querySelector('.clear-download-btn').addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await this.clearDownloadStatus(item.filename);
+            });
+
+            this.downloadStatusPanel.appendChild(el);
+        });
+    }
+
+    // Clear a download status entry
+    async clearDownloadStatus(filename) {
+        try {
+            const response = await fetch(`${this.apiEndpoint}/sdapi/v1/download-status/${encodeURIComponent(filename)}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) throw new Error('Failed to clear');
+            this.fetchDownloadStatus();
+        } catch (e) {
+            console.error('Clear download status error:', e);
+        }
+    }
+
+    // Format bytes to human readable
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }
 
     // Apply quality presets
