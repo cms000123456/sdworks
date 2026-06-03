@@ -1,5 +1,5 @@
 // ===============================================
-// SDWorks - APPLICATION LOGIC
+// STABLE DIFFUSION FRONTEND - APPLICATION LOGIC
 // ===============================================
 
 class StableDiffusionApp {
@@ -299,6 +299,16 @@ class StableDiffusionApp {
 
         // LoRA Events
         if (this.addLoraBtn) this.addLoraBtn.addEventListener('click', () => this.openLoraModal());
+        const loraHelpBtn = document.getElementById('loraHelpBtn');
+        const loraHelpPanel = document.getElementById('loraHelpPanel');
+        if (loraHelpBtn && loraHelpPanel) {
+            loraHelpBtn.addEventListener('click', () => {
+                const open = loraHelpPanel.style.display === 'none';
+                loraHelpPanel.style.display = open ? 'block' : 'none';
+                loraHelpBtn.style.opacity = open ? '1' : '0.7';
+            });
+        }
+        document.getElementById('removeNoInfoLorasBtn')?.addEventListener('click', () => this.removeLorasWithoutInfo());
         if (this.closeLoraModalBtn) this.closeLoraModalBtn.addEventListener('click', () => this.closeLoraModal());
         if (this.loraSearchInput) this.loraSearchInput.addEventListener('input', () => this.searchLoras());
 
@@ -1034,6 +1044,10 @@ class StableDiffusionApp {
                 <div><strong>Time:</strong> ${duration ? duration.toFixed(2) + 's' : 'N/A'}</div>
                 <div><strong>Speed:</strong> ${duration && params.steps ? (params.steps / duration).toFixed(2) + ' it/s' : 'N/A'}</div>
             </div>
+            ${params.loras && params.loras.length > 0 ? `
+                <div style="grid-column: 1 / -1; margin-top: 0.25rem; padding: 0.4rem 0.6rem; background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.25); border-radius: 6px; font-size: 0.8rem;">
+                    <strong>🎨 LoRAs:</strong> ${params.loras.map(l => `<span style="opacity:0.9;">${this.escapeHtml(l.title || l.name)}</span> <span style="color:var(--color-accent-primary);">×${parseFloat(l.weight).toFixed(2)}</span>`).join(' &nbsp;·&nbsp; ')}
+                </div>` : ''}
             ${params.prompt ? `<div style="margin-top: 0.75rem;"><strong>Prompt:</strong><br>${this.escapeHtml(params.prompt)}</div>` : ''}
             ${params.negative_prompt ? `<div style="margin-top: 0.5rem; opacity: 0.7; font-size: 0.85rem;"><strong>Negative Prompt:</strong><br>${this.escapeHtml(params.negative_prompt)}</div>` : ''}
             
@@ -1415,26 +1429,37 @@ class StableDiffusionApp {
 
         this.civitaiResults.innerHTML = '';
         items.forEach(item => {
+            const words = item.trainedWords || [];
             const el = document.createElement('div');
             el.className = 'civitai-item';
+            el.style.flexDirection = 'column';
+            el.style.alignItems = 'stretch';
+            el.style.gap = '0.4rem';
             el.innerHTML = `
-                <img src="${item.image || ''}" class="civitai-img" onerror="this.src='https://via.placeholder.com/60?text=No+Img'">
-                <div class="civitai-info">
-                    <div class="civitai-name" title="${item.name}">${this.escapeHtml(item.name)}</div>
-                    <div class="civitai-meta">${item.type || 'Model'} • ${item.filename || 'Unknown file'}</div>
+                <div style="display:flex;align-items:center;gap:0.6rem;">
+                    <img src="${item.image || ''}" class="civitai-img" onerror="this.style.display='none'">
+                    <div class="civitai-info" style="flex:1;min-width:0;">
+                        <div class="civitai-name" title="${this.escapeHtml(item.name)}">${this.escapeHtml(item.name)}</div>
+                        <div class="civitai-meta">${item.type || 'Model'} · ${this.escapeHtml(item.filename || '')}</div>
+                    </div>
+                    <button class="btn btn-primary btn-sm download-btn" title="Download">⬇️</button>
                 </div>
-                <button class="btn btn-primary btn-sm download-btn" data-url="${item.downloadUrl}" data-name="${item.filename}" data-type="${item.type}" title="Download Model">⬇️</button>
+                ${words.length ? `
+                <div style="font-size:0.68rem;line-height:1.5;padding:0.3rem 0.4rem;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2);border-radius:4px;">
+                    <span style="color:var(--color-text-muted);font-weight:600;">Trigger words: </span>
+                    <span style="color:var(--color-text-secondary);">${words.map(w => this.escapeHtml(w)).join(', ')}</span>
+                </div>` : ''}
             `;
 
-            const downBtn = el.querySelector('.download-btn');
-            downBtn.addEventListener('click', () => this.downloadFromCivitai(item.downloadUrl, item.filename, item.type));
+            el.querySelector('.download-btn').addEventListener('click', () =>
+                this.downloadFromCivitai(item.downloadUrl, item.filename, item.type, words));
 
             this.civitaiResults.appendChild(el);
         });
     }
 
     // Start background download from Civitai via backend proxy
-    async downloadFromCivitai(url, filename, type = 'Checkpoint') {
+    async downloadFromCivitai(url, filename, type = 'Checkpoint', trainedWords = []) {
         const isLora = type.toUpperCase() === 'LORA';
         const displayType = isLora ? 'LoRA' : 'Model';
         this.showNotification(`Starting ${displayType} download: ${filename}`, 'info');
@@ -1443,6 +1468,7 @@ class StableDiffusionApp {
             const formData = new FormData();
             formData.append('downloadUrl', url);
             formData.append('filename', filename);
+            formData.append('trainedWords', JSON.stringify(trainedWords));
 
             // Add a flag for LoRA so the backend knows where to save it
             if (isLora) formData.append('isLora', 'true');
@@ -1601,26 +1627,34 @@ class StableDiffusionApp {
             item.style.cursor = 'pointer';
             item.style.marginBottom = '0.5rem';
 
+            const words = lora.trainedWords || [];
             item.innerHTML = `
             <div class="lora-item-row">
-                <div style="flex: 1; overflow: hidden; padding-right: 0.5rem;">
+                <div style="flex: 1; min-width: 0; padding-right: 0.5rem;">
                     <div class="lora-item-title">${this.escapeHtml(lora.title)}</div>
                     <div class="lora-item-subtitle">${this.escapeHtml(lora.name)}</div>
                 </div>
-                <button type="button" class="btn ${isSelected ? 'btn-secondary' : 'btn-primary'} btn-sm" style="flex-shrink: 0;">
-                    ${isSelected ? 'Selected' : 'Add'}
-                </button>
+                <div style="display:flex;gap:0.3rem;flex-shrink:0;">
+                    <button type="button" class="btn ${isSelected ? 'btn-secondary' : 'btn-primary'} btn-sm add-btn">
+                        ${isSelected ? '✓' : 'Add'}
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm delete-btn" title="Delete this LoRA" style="padding:3px 7px;background:rgba(239,68,68,0.12);border-color:rgba(239,68,68,0.4);color:#f87171;">🗑️</button>
+                </div>
             </div>
+            ${words.length ? `<div style="font-size:0.67rem;margin-top:0.25rem;color:var(--color-accent-primary);opacity:0.9;">⚡ ${words.slice(0, 5).map(w => this.escapeHtml(w)).join(', ')}${words.length > 5 ? ' …' : ''}</div>` : '<div style="font-size:0.65rem;margin-top:0.2rem;color:var(--color-text-muted);opacity:0.7;">no trigger info</div>'}
         `;
 
-            item.onclick = (e) => {
-                if (isSelected) {
-                    this.removeLora(lora.name);
-                } else {
-                    this.addLora(lora);
-                }
+            item.querySelector('.add-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (isSelected) this.removeLora(lora.name); else this.addLora(lora);
                 this.renderLoraList();
-            };
+            });
+
+            item.querySelector('.delete-btn').addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (!confirm(`Delete "${lora.title}" from disk?`)) return;
+                await this.deleteLora(lora.name);
+            });
 
             this.loraListDisplay.appendChild(item);
         });
@@ -1628,7 +1662,7 @@ class StableDiffusionApp {
 
     addLora(lora) {
         if (!this.selectedLoras.some(s => s.name === lora.name)) {
-            this.selectedLoras.push({ name: lora.name, weight: 1.0, title: lora.title });
+            this.selectedLoras.push({ name: lora.name, weight: 1.0, title: lora.title, trainedWords: lora.trainedWords || [] });
             this.saveLorasToStorage();
             this.renderActiveLoras();
             this.showNotification(`Added LoRA: ${lora.title}`, 'success');
@@ -1639,10 +1673,27 @@ class StableDiffusionApp {
         this.selectedLoras = this.selectedLoras.filter(s => s.name !== loraName);
         this.saveLorasToStorage();
         this.renderActiveLoras();
-        // Update list if modal is open
-        if (!this.loraModal.classList.contains('hidden')) {
+        if (!this.loraModal.classList.contains('hidden')) this.renderLoraList();
+    }
+
+    async deleteLora(filename) {
+        try {
+            const res = await fetch(`${this.apiEndpoint}/sdapi/v1/loras/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error(await res.text());
+            this.availableLoras = this.availableLoras.filter(l => l.name !== filename);
+            this.removeLora(filename);
+            this.showNotification(`Deleted ${filename}`, 'success');
             this.renderLoraList();
+        } catch (e) {
+            this.showNotification(`Delete failed: ${e.message}`, 'error');
         }
+    }
+
+    async removeLorasWithoutInfo() {
+        const targets = this.availableLoras.filter(l => !l.trainedWords || l.trainedWords.length === 0);
+        if (targets.length === 0) { this.showNotification('No LoRAs without trigger info', 'info'); return; }
+        if (!confirm(`Delete ${targets.length} LoRA(s) with no trigger word info?`)) return;
+        for (const lora of targets) await this.deleteLora(lora.name);
     }
 
     updateLoraWeight(loraName, weight) {
@@ -1657,6 +1708,14 @@ class StableDiffusionApp {
         if (!this.activeLorasList) return;
         this.activeLorasList.innerHTML = '';
 
+        // Update card label colour to indicate active state
+        const loraCard = this.activeLorasList.closest('.glass-card');
+        if (loraCard) {
+            loraCard.style.borderColor = this.selectedLoras.length > 0
+                ? 'rgba(124,58,237,0.45)'
+                : '';
+        }
+
         if (this.selectedLoras.length === 0) {
             this.activeLorasList.appendChild(this.noLorasMessage);
             return;
@@ -1664,19 +1723,21 @@ class StableDiffusionApp {
 
         this.selectedLoras.forEach(lora => {
             const item = document.createElement('div');
-            item.className = 'lora-item';
-            item.style.marginBottom = '0.5rem';
+            item.className = 'lora-item selected';
 
+            const words = lora.trainedWords || [];
             item.innerHTML = `
             <div class="lora-item-row">
-                <div class="lora-item-title" style="flex: 1; max-width: 140px;" title="${this.escapeHtml(lora.title)}">
+                <div class="lora-item-title" style="flex: 1; min-width: 0;" title="${this.escapeHtml(lora.title)}">
                     ${this.escapeHtml(lora.title)}
                 </div>
-                <button type="button" class="btn btn-secondary btn-sm" style="padding: 2px 6px; font-size: 0.7rem;">✕</button>
+                <button type="button" style="padding: 2px 8px; font-size: 0.7rem; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.5); color: #f87171; border-radius: 4px; cursor: pointer; flex-shrink: 0;">✕</button>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.75rem; align-items: center; margin-top: 0.25rem;">
-                <input type="range" class="form-range" min="0" max="1.5" step="0.05" value="${lora.weight}">
-                <span style="font-size: 0.75rem; font-family: monospace; min-width: 30px; text-align: right; line-height: 1.5;">${lora.weight.toFixed(2)}</span>
+            ${words.length ? `<div style="font-size:0.65rem;color:var(--color-accent-primary);opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${words.map(w => this.escapeHtml(w)).join(', ')}">⚡ ${words.slice(0, 3).map(w => this.escapeHtml(w)).join(', ')}${words.length > 3 ? ' …' : ''}</div>` : ''}
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                <span style="font-size: 0.65rem; color: var(--color-text-muted); white-space: nowrap;">Weight</span>
+                <input type="range" class="form-range" min="0" max="1.5" step="0.05" value="${lora.weight}" style="flex: 1;">
+                <span style="font-size: 0.78rem; font-family: monospace; min-width: 34px; text-align: right; color: var(--color-accent-primary); font-weight: 600;">${lora.weight.toFixed(2)}</span>
             </div>
         `;
 

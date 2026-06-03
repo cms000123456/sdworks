@@ -1,4 +1,4 @@
-# SDWorks Backend
+# Stable Diffusion Python Backend
 
 A standalone Python backend for Stable Diffusion using FastAPI and the `diffusers` library. No need for AUTOMATIC1111 or other complex setups!
 
@@ -40,7 +40,7 @@ The easiest way to run the backend is with Docker! No manual Python setup requir
 
 ```bash
 # Navigate to backend directory
-cd C:\Users\cms\Documents\Antigravity\SDWorks\backend
+cd C:\Users\cms\Documents\Antigravity\SDFrontend\backend
 
 # Build and start the container
 docker-compose up -d
@@ -93,7 +93,7 @@ If you prefer not to use Docker, you can run the backend directly with Python:
 
 ```bash
 # Navigate to backend directory
-cd C:\Users\cms\Documents\Antigravity\SDWorks\backend
+cd C:\Users\cms\Documents\Antigravity\SDFrontend\backend
 
 # Install requirements
 pip install -r requirements.txt
@@ -186,7 +186,7 @@ device = "cpu"  # Force CPU in load_model() function
 **GPU not detected in container**:
 
 - Ensure NVIDIA drivers are installed on host
-- Install NVIDIA Container Toolkit
+- Install NVIDIA Container Toolkit (https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 - Verify Docker Desktop GPU support is enabled (Settings → Resources → WSL Integration)
 
 **Model download fails**:

@@ -9,12 +9,12 @@
     <meta name="description"
         content="Premium Stable Diffusion web interface for AI image generation with advanced controls and stunning UI">
     <meta name="keywords" content="Stable Diffusion, AI Image Generation, Text to Image, AI Art">
-    <meta name="author" content="SDWorks">
+    <meta name="author" content="Stable Diffusion Frontend">
 
-    <title>SDWorks - AI Image Generation</title>
+    <title>Stable Diffusion Frontend - AI Image Generation</title>
 
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=9">
+    <link rel="stylesheet" href="style.css?v=12">
 </head>
 
 <body>
@@ -44,8 +44,19 @@
                         <label class="form-label"
                             style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem;">
                             🎨 LoRAs context
-                            <button type="button" class="btn btn-secondary btn-xs" id="addLoraBtn">+</button>
+                            <div style="display: flex; gap: 0.3rem;">
+                                <button type="button" class="btn btn-secondary btn-xs" id="loraHelpBtn" title="How to use LoRAs" style="opacity: 0.7;">?</button>
+                                <button type="button" class="btn btn-secondary btn-xs" id="addLoraBtn">+</button>
+                            </div>
                         </label>
+                        <div id="loraHelpPanel" style="display: none; font-size: 0.68rem; color: var(--color-text-secondary); background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2); border-radius: 6px; padding: 0.5rem 0.6rem; margin-bottom: 0.4rem; line-height: 1.6;">
+                            <strong style="color: var(--color-text-primary);">Using LoRAs</strong><br>
+                            1. Click <kbd style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:3px;padding:0 3px;">+</kbd> to open the selector and pick a LoRA.<br>
+                            2. Adjust the <strong>weight slider</strong> (0 = off, 1.0 = normal strength).<br>
+                            3. To reference a LoRA <em>inline</em> in the prompt use:<br>
+                            <code style="display:block;margin-top:0.3rem;padding:0.3rem 0.4rem;background:rgba(0,0,0,0.3);border-radius:4px;font-size:0.7rem;letter-spacing:0.02em;">&lt;lora:filename:1.0&gt;</code>
+                            <span style="opacity:0.7;">where <em>filename</em> is the model name without extension.</span>
+                        </div>
                         <div id="activeLorasList"
                             style="display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.25rem;">
                             <div id="noLorasMessage" class="text-muted"
@@ -372,7 +383,7 @@
                                 <button type="button" class="btn btn-primary btn-xs" id="civitaiSearchBtn">🔍</button>
                             </div>
                             <div id="civitaiResults"
-                                style="max-height: 120px; overflow-y: auto; margin-top: 0.5rem; font-size: 0.75rem;">
+                                style="max-height: 300px; overflow-y: auto; margin-top: 0.5rem; font-size: 0.75rem;">
                             </div>
                         </div>
                     </div>
@@ -399,7 +410,7 @@
         <footer
             style="text-align: center; margin-top: 2rem; padding: 1rem 0; color: var(--color-text-secondary); font-size: 0.8rem; border-top: 1px solid var(--glass-border);">
             <div style="opacity: 0.7;">
-                SDWorks <span id="appVersion"
+                Stable Diffusion Frontend <span id="appVersion"
                     style="font-family: var(--font-mono); font-weight: bold; color: var(--color-accent-primary);">v3.13</span>
             </div>
         </footer>
@@ -441,11 +452,14 @@
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h3 class="modal-title">Select LoRA</h3>
-                <button class="btn btn-secondary btn-sm" id="closeLoraModalBtn">✕</button>
+                <div style="display:flex;gap:0.4rem;align-items:center;">
+                    <button class="btn btn-secondary btn-sm" id="removeNoInfoLorasBtn" title="Delete all LoRAs that have no trigger word info" style="font-size:0.7rem;padding:3px 8px;opacity:0.8;">🗑️ Remove without info</button>
+                    <button class="btn btn-secondary btn-sm" id="closeLoraModalBtn">✕</button>
+                </div>
             </div>
             <div class="modal-body">
                 <input type="text" id="loraSearchInput" class="form-input mb-sm" placeholder="Search LoRAs...">
-                <div id="loraList" style="max-height: 400px; overflow-y: auto;">
+                <div id="loraList" style="max-height: 60vh; overflow-y: auto;">
                     <!-- LoRAs will be populated here -->
                 </div>
             </div>
@@ -469,7 +483,7 @@
     </div>
 
     <!-- JavaScript -->
-    <script src="app.js?v=20"></script>
+    <script src="app.js?v=25"></script>
 </body>
 
 </html>

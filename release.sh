@@ -47,7 +47,7 @@ echo -e "\n--- app.js ---" >> "$TXT_FILE"
 cat app.js >> "$TXT_FILE"
 
 # Create zip release
-ZIP_FILE="SDWorks_v${VERSION}.zip"
+ZIP_FILE="SDFrontend_v${VERSION}.zip"
 rm -f "$ZIP_FILE"
 echo "Bundling files into $ZIP_FILE..."
 # Include frontend, release scripts, and backend (excluding bulky models/cache)

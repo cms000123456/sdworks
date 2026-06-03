@@ -6,6 +6,8 @@ Compatible with AUTOMATIC1111 API format
 
 import io
 import os
+import re
+import json
 import base64
 import logging
 import gc
@@ -379,17 +381,45 @@ async def get_models():
 
 @app.get("/sdapi/v1/loras")
 async def get_loras():
-    """Return available LoRAs"""
+    """Return available LoRAs with trigger words from JSON sidecar if present"""
     loras = []
     if os.path.exists(LORAS_DIR):
-        for file in os.listdir(LORAS_DIR):
-            if file.endswith((".safetensors", ".ckpt")):
-                loras.append({
-                    "name": file,
-                    "title": file.replace(".safetensors", "").replace(".ckpt", ""),
-                    "path": os.path.join(LORAS_DIR, file)
-                })
+        for file in sorted(os.listdir(LORAS_DIR)):
+            if not file.endswith((".safetensors", ".ckpt")):
+                continue
+            stem = re.sub(r'\.(safetensors|ckpt)$', '', file, flags=re.IGNORECASE)
+            sidecar = os.path.join(LORAS_DIR, stem + ".json")
+            trained_words = []
+            if os.path.exists(sidecar):
+                try:
+                    with open(sidecar) as sf:
+                        trained_words = json.load(sf).get("trainedWords", [])
+                except Exception:
+                    pass
+            loras.append({
+                "name": file,
+                "title": stem,
+                "path": os.path.join(LORAS_DIR, file),
+                "trainedWords": trained_words
+            })
     return loras
+
+
+@app.delete("/sdapi/v1/loras/{filename}")
+async def delete_lora(filename: str):
+    """Delete a LoRA file and its sidecar"""
+    if not filename.endswith((".safetensors", ".ckpt")):
+        raise HTTPException(status_code=400, detail="Invalid file type")
+    lora_path = os.path.join(LORAS_DIR, filename)
+    if not os.path.exists(lora_path):
+        raise HTTPException(status_code=404, detail="LoRA not found")
+    os.remove(lora_path)
+    stem = re.sub(r'\.(safetensors|ckpt)$', '', filename, flags=re.IGNORECASE)
+    sidecar = os.path.join(LORAS_DIR, stem + ".json")
+    if os.path.exists(sidecar):
+        os.remove(sidecar)
+    logger.info(f"Deleted LoRA: {filename}")
+    return {"message": f"Deleted {filename}"}
 
 
 @app.post("/sdapi/v1/upload-model")
@@ -479,7 +509,8 @@ async def search_civitai_models(query: str = "", limit: int = 20):
                                 "type": m_type,
                                 "image": img_url,
                                 "downloadUrl": download_url,
-                                "filename": filename
+                                "filename": filename,
+                                "trainedWords": latest_version.get("trainedWords", [])
                             })
                             if len(results) >= limit: break
                 except Exception as e:
@@ -496,19 +527,25 @@ async def search_civitai_models(query: str = "", limit: int = 20):
 
 @app.post("/sdapi/v1/civitai/download")
 async def download_civitai_model(
-    downloadUrl: str = Form(...), 
+    downloadUrl: str = Form(...),
     filename: str = Form(...),
-    isLora: bool = Form(False)
+    isLora: bool = Form(False),
+    trainedWords: str = Form("[]")
 ):
     """Download a model from Civitai in the background"""
     if not (filename.endswith(".safetensors") or filename.endswith(".ckpt")):
         filename += ".safetensors"
-        
+
     save_dir = LORAS_DIR if isLora else MODELS_DIR
     target_path = os.path.join(save_dir, filename)
-    
+
     if os.path.exists(target_path):
         return {"message": "Model already exists", "filename": filename}
+
+    try:
+        words = json.loads(trainedWords)
+    except Exception:
+        words = []
 
     async def do_download():
         target_file_path = target_path
@@ -517,13 +554,11 @@ async def download_civitai_model(
             async with httpx.AsyncClient(follow_redirects=True) as client:
                 async with client.stream("GET", downloadUrl, timeout=None) as response:
                     response.raise_for_status()
-                    
+
                     # Try to get filename from Content-Disposition if it looks like a generic one
                     if "downloaded_model" in filename or "civitai_" in filename:
                         cd = response.headers.get("Content-Disposition")
                         if cd and "filename=" in cd:
-                            import re
-                            # Extract filename from header (e.g. filename="model.safetensors")
                             fname_match = re.search('filename="?([^";]+)"?', cd)
                             if fname_match:
                                 new_filename = fname_match.group(1)
@@ -533,7 +568,15 @@ async def download_civitai_model(
                     with open(target_file_path, "wb") as f:
                         async for chunk in response.aiter_bytes():
                             f.write(chunk)
-            logger.info(f"Download complete: {os.path.basename(target_file_path)}")
+
+            # Save trigger words sidecar alongside the model
+            final_name = os.path.basename(target_file_path)
+            stem = re.sub(r'\.(safetensors|ckpt)$', '', final_name, flags=re.IGNORECASE)
+            sidecar = os.path.join(save_dir, stem + ".json")
+            with open(sidecar, "w") as sf:
+                json.dump({"trainedWords": words}, sf)
+
+            logger.info(f"Download complete: {final_name}")
         except Exception as e:
             logger.error(f"Background download failed for {filename}: {e}")
             if os.path.exists(target_file_path):
@@ -606,6 +649,24 @@ async def set_options(options: Options):
     return {"message": "Options set"}
 
 
+_LORA_TAG = re.compile(r'<lora:([^:>\s]+):([0-9]*\.?[0-9]+)>', re.IGNORECASE)
+
+def extract_inline_loras(prompt: str):
+    """Parse <lora:filename:weight> tags from prompt. Returns (cleaned_prompt, list_of_LoraSelection)."""
+    found = []
+    for m in _LORA_TAG.finditer(prompt):
+        name_stem, weight = m.group(1), float(m.group(2))
+        for ext in ('.safetensors', '.ckpt'):
+            candidate = name_stem + ext
+            if os.path.exists(os.path.join(LORAS_DIR, candidate)):
+                found.append(LoraSelection(name=candidate, weight=weight))
+                break
+        else:
+            logger.warning(f"Inline LoRA not found on disk: {name_stem}")
+    clean = _LORA_TAG.sub('', prompt).strip()
+    return clean, found
+
+
 @app.post("/sdapi/v1/txt2img", response_model=GenerationResponse)
 async def text_to_image(request: GenerationRequest):
     global pipeline
@@ -627,7 +688,15 @@ async def text_to_image(request: GenerationRequest):
             logger.info(f"Generated random seed: {actual_seed}")
         
         generator = torch.Generator(device=pipeline.device).manual_seed(actual_seed)
-        
+
+        # Parse inline <lora:name:weight> tags from prompt
+        clean_prompt, inline_loras = extract_inline_loras(request.prompt)
+        if inline_loras:
+            request.prompt = clean_prompt
+            existing = list(request.loras) if request.loras else []
+            known = {l.name for l in existing}
+            request.loras = existing + [l for l in inline_loras if l.name not in known]
+
         # Handle LoRAs
         active_loras = []
         if request.loras:
