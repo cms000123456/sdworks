@@ -623,11 +623,11 @@ async def download_civitai_model(
                 from safetensors import safe_open
                 with safe_open(target_file_path, framework="pt") as f:
                     metadata = f.metadata() or {}
-                    arch = metadata.get("modelspec.architecture", "")
-                    base_version = metadata.get("ss_base_model_version", "")
-                    if "sdxl" in arch.lower() or "sdxl" in base_version.lower():
+                    arch = metadata.get("modelspec.architecture", "").lower()
+                    base_version = metadata.get("ss_base_model_version", "").lower()
+                    if "xl" in arch or "xl" in base_version:
                         base_model = "sdxl"
-                    elif "stable-diffusion-v1" in arch.lower():
+                    elif "stable-diffusion-v1" in arch:
                         base_model = "sd15"
                     else:
                         base_model = base_version or arch or "unknown"
@@ -729,6 +729,37 @@ async def set_options(options: Options):
 
 
 _LORA_TAG = re.compile(r'<lora:([^:>\s]+):([0-9]*\.?[0-9]+)>', re.IGNORECASE)
+
+def detect_lora_architecture(lora_path: str) -> str:
+    """Detect LoRA architecture from safetensors metadata. Returns 'sd15', 'sdxl', 'unknown'."""
+    try:
+        from safetensors import safe_open
+        with safe_open(lora_path, framework="pt") as f:
+            metadata = f.metadata() or {}
+            arch = metadata.get("modelspec.architecture", "").lower()
+            base_version = metadata.get("ss_base_model_version", "").lower()
+            if "xl" in arch or "xl" in base_version:
+                return "sdxl"
+            elif "stable-diffusion-v1" in arch or "sd1" in base_version:
+                return "sd15"
+            # Fallback: check resolution hint
+            resolution = metadata.get("modelspec.resolution", "")
+            if "1024" in resolution:
+                return "sdxl"
+            return "unknown"
+    except Exception:
+        return "unknown"
+
+
+def get_pipeline_architecture() -> str:
+    """Detect current pipeline architecture."""
+    if pipeline is None:
+        return "unknown"
+    pipeline_type = type(pipeline).__name__
+    if "XL" in pipeline_type:
+        return "sdxl"
+    return "sd15"
+
 
 def extract_inline_loras(prompt: str):
     """Parse <lora:filename:weight> tags from prompt. Returns (cleaned_prompt, list_of_LoraSelection)."""
