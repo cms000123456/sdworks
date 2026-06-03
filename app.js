@@ -1720,10 +1720,12 @@ class StableDiffusionApp {
             item.style.marginBottom = '0.5rem';
 
             const words = lora.trainedWords || [];
+            const baseModel = lora.base_model || 'unknown';
+            const baseModelBadge = baseModel !== 'unknown' ? `<span style="font-size:0.6rem;padding:1px 5px;border-radius:3px;background:var(--color-bg-tertiary);color:var(--color-text-muted);margin-left:0.4rem;">${this.escapeHtml(baseModel.toUpperCase())}</span>` : '';
             item.innerHTML = `
             <div class="lora-item-row">
                 <div style="flex: 1; min-width: 0; padding-right: 0.5rem;">
-                    <div class="lora-item-title">${this.escapeHtml(lora.title)}</div>
+                    <div class="lora-item-title">${this.escapeHtml(lora.title)}${baseModelBadge}</div>
                     <div class="lora-item-subtitle">${this.escapeHtml(lora.name)}</div>
                 </div>
                 <div style="display:flex;gap:0.3rem;flex-shrink:0;">
@@ -1754,7 +1756,7 @@ class StableDiffusionApp {
 
     addLora(lora) {
         if (!this.selectedLoras.some(s => s.name === lora.name)) {
-            this.selectedLoras.push({ name: lora.name, weight: 1.0, title: lora.title, trainedWords: lora.trainedWords || [] });
+            this.selectedLoras.push({ name: lora.name, weight: 1.0, title: lora.title, trainedWords: lora.trainedWords || [], base_model: lora.base_model || 'unknown' });
             this.saveLorasToStorage();
             this.renderActiveLoras();
             this.showNotification(`Added LoRA: ${lora.title}`, 'success');

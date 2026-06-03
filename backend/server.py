@@ -77,6 +77,14 @@ AVAILABLE_MODELS = [
         "architecture": "sd15"
     },
     {
+        "title": "Stable Diffusion XL Base 1.0",
+        "model_name": "stabilityai/stable-diffusion-xl-base-1.0",
+        "hash": "sdxl-base",
+        "sha256": "sdxl-base",
+        "config": "sdxl",
+        "architecture": "sdxl"
+    },
+    {
         "title": "Stable Diffusion v2.1 (StabilityAI)",
         "model_name": "stabilityai/stable-diffusion-2-1",
         "hash": "v2-1",
@@ -387,7 +395,7 @@ async def get_models():
 
 @app.get("/sdapi/v1/loras")
 async def get_loras():
-    """Return available LoRAs with trigger words from JSON sidecar if present"""
+    """Return available LoRAs with trigger words and base model from JSON sidecar if present"""
     loras = []
     if os.path.exists(LORAS_DIR):
         for file in sorted(os.listdir(LORAS_DIR)):
@@ -396,17 +404,21 @@ async def get_loras():
             stem = re.sub(r'\.(safetensors|ckpt)$', '', file, flags=re.IGNORECASE)
             sidecar = os.path.join(LORAS_DIR, stem + ".json")
             trained_words = []
+            base_model = "unknown"
             if os.path.exists(sidecar):
                 try:
                     with open(sidecar) as sf:
-                        trained_words = json.load(sf).get("trainedWords", [])
+                        sidecar_data = json.load(sf)
+                        trained_words = sidecar_data.get("trainedWords", [])
+                        base_model = sidecar_data.get("base_model", "unknown")
                 except Exception:
                     pass
             loras.append({
                 "name": file,
                 "title": stem,
                 "path": os.path.join(LORAS_DIR, file),
-                "trainedWords": trained_words
+                "trainedWords": trained_words,
+                "base_model": base_model
             })
     return loras
 
@@ -604,8 +616,26 @@ async def download_civitai_model(
             final_name = os.path.basename(target_file_path)
             stem = re.sub(r'\.(safetensors|ckpt)$', '', final_name, flags=re.IGNORECASE)
             sidecar = os.path.join(save_dir, stem + ".json")
+            
+            # Detect base model from safetensors metadata
+            base_model = "unknown"
+            try:
+                from safetensors import safe_open
+                with safe_open(target_file_path, framework="pt") as f:
+                    metadata = f.metadata() or {}
+                    arch = metadata.get("modelspec.architecture", "")
+                    base_version = metadata.get("ss_base_model_version", "")
+                    if "sdxl" in arch.lower() or "sdxl" in base_version.lower():
+                        base_model = "sdxl"
+                    elif "stable-diffusion-v1" in arch.lower():
+                        base_model = "sd15"
+                    else:
+                        base_model = base_version or arch or "unknown"
+            except Exception:
+                pass
+            
             with open(sidecar, "w") as sf:
-                json.dump({"trainedWords": words}, sf)
+                json.dump({"trainedWords": words, "base_model": base_model}, sf)
 
             _download_status[status_key]["status"] = "completed"
             logger.info(f"Download complete: {final_name}")
@@ -749,9 +779,17 @@ async def text_to_image(request: GenerationRequest):
         # Handle LoRAs
         active_loras = []
         if request.loras:
+            pipeline_arch = get_pipeline_architecture()
             for lora in request.loras:
                 lora_path = os.path.join(LORAS_DIR, lora.name)
                 if os.path.exists(lora_path):
+                    # Detect architecture mismatch before loading
+                    lora_arch = detect_lora_architecture(lora_path)
+                    if lora_arch != "unknown" and lora_arch != pipeline_arch:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Architecture mismatch: LoRA '{lora.name}' is {lora_arch.upper()} but current model is {pipeline_arch.upper()}. Please load a compatible base model."
+                        )
                     try:
                         adapter_name = lora.name.replace(".safetensors", "").replace(".ckpt", "")
                         logger.info(f"Loading LoRA: {lora.name} with weight {lora.weight}...")
@@ -759,8 +797,16 @@ async def text_to_image(request: GenerationRequest):
                         active_loras.append(adapter_name)
                     except Exception as le:
                         logger.error(f"Failed to load LoRA {lora.name}: {le}")
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Failed to load LoRA '{lora.name}': {le}"
+                        )
                 else:
                     logger.warning(f"LoRA file not found: {lora_path}")
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"LoRA file not found: {lora.name}"
+                    )
             
             if active_loras:
                 # Set weights for all active LoRAs
