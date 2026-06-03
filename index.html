@@ -357,6 +357,18 @@
                     </div>
 
                     <div id="downloadTab" class="tab-content hidden">
+                        <!-- Download Status Panel -->
+                        <div class="form-group mb-sm">
+                            <label class="form-label" style="font-size: 0.65rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span>⬇️ Downloads</span>
+                                <button type="button" class="btn btn-secondary btn-xs" id="refreshDownloadsBtn" title="Refresh" style="padding: 2px 6px; font-size: 0.6rem;">🔄</button>
+                            </label>
+                            <div id="downloadStatusPanel"
+                                style="max-height: 180px; overflow-y: auto; font-size: 0.7rem; display: flex; flex-direction: column; gap: 0.4rem;">
+                                <div class="text-muted" style="text-align: center; padding: 0.5rem;">No active downloads</div>
+                            </div>
+                        </div>
+
                         <!-- Direct Link Download -->
                         <div class="form-group mb-sm">
                             <label class="form-label" style="font-size: 0.65rem;">Direct Link (Civitai/etc)</label>

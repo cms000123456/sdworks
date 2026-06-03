@@ -50,6 +50,12 @@ MODELS_DIR = "/app/models"
 LEGACY_MODELS_DIR = "/app/models/legacy"
 LORAS_DIR = "/app/models/loras"
 
+# Download status tracking: filename -> {status, progress, total, error, type}
+_download_status = {}
+
+# Civitai API Key (optional, for gated models)
+CIVITAI_API_KEY = os.environ.get("CIVITAI_API_KEY", "")
+
 # Prompt Refinement Models
 interrogator_processor = None
 interrogator_model = None
@@ -549,14 +555,29 @@ async def download_civitai_model(
 
     async def do_download():
         target_file_path = target_path
+        status_key = filename
+        _download_status[status_key] = {
+            "status": "downloading",
+            "progress": 0,
+            "total": 0,
+            "downloaded": 0,
+            "error": None,
+            "type": "lora" if isLora else "checkpoint",
+            "filename": status_key
+        }
         try:
-            logger.info(f"Starting background download: {filename}")
+            logger.info(f"Starting background download: {status_key}")
+            headers = {}
+            if CIVITAI_API_KEY and "civitai.com" in downloadUrl:
+                headers["Authorization"] = f"Bearer {CIVITAI_API_KEY}"
             async with httpx.AsyncClient(follow_redirects=True) as client:
-                async with client.stream("GET", downloadUrl, timeout=None) as response:
+                async with client.stream("GET", downloadUrl, timeout=None, headers=headers) as response:
                     response.raise_for_status()
+                    total = int(response.headers.get("Content-Length", 0))
+                    _download_status[status_key]["total"] = total
 
                     # Try to get filename from Content-Disposition if it looks like a generic one
-                    if "downloaded_model" in filename or "civitai_" in filename:
+                    if "downloaded_model" in status_key or "civitai_" in status_key:
                         cd = response.headers.get("Content-Disposition")
                         if cd and "filename=" in cd:
                             fname_match = re.search('filename="?([^";]+)"?', cd)
@@ -564,10 +585,20 @@ async def download_civitai_model(
                                 new_filename = fname_match.group(1)
                                 target_file_path = os.path.join(save_dir, new_filename)
                                 logger.info(f"Renaming download to header filename: {new_filename}")
+                                # Update status key
+                                old = _download_status.pop(status_key)
+                                old["filename"] = new_filename
+                                status_key = new_filename
+                                _download_status[status_key] = old
 
+                    downloaded = 0
                     with open(target_file_path, "wb") as f:
                         async for chunk in response.aiter_bytes():
                             f.write(chunk)
+                            downloaded += len(chunk)
+                            _download_status[status_key]["downloaded"] = downloaded
+                            if total:
+                                _download_status[status_key]["progress"] = round(downloaded / total * 100, 1)
 
             # Save trigger words sidecar alongside the model
             final_name = os.path.basename(target_file_path)
@@ -576,9 +607,12 @@ async def download_civitai_model(
             with open(sidecar, "w") as sf:
                 json.dump({"trainedWords": words}, sf)
 
+            _download_status[status_key]["status"] = "completed"
             logger.info(f"Download complete: {final_name}")
         except Exception as e:
-            logger.error(f"Background download failed for {filename}: {e}")
+            logger.error(f"Background download failed for {status_key}: {e}")
+            _download_status[status_key]["status"] = "failed"
+            _download_status[status_key]["error"] = str(e)
             if os.path.exists(target_file_path):
                 try: os.remove(target_file_path)
                 except: pass
@@ -586,6 +620,21 @@ async def download_civitai_model(
     # Run download in background
     asyncio.create_task(do_download())
     return {"message": "Download started in background", "filename": filename}
+
+
+@app.get("/sdapi/v1/download-status")
+async def get_download_status():
+    """Return current download statuses"""
+    return list(_download_status.values())
+
+
+@app.delete("/sdapi/v1/download-status/{filename}")
+async def clear_download_status(filename: str):
+    """Clear a download status entry"""
+    if filename in _download_status:
+        del _download_status[filename]
+        return {"message": "Cleared"}
+    raise HTTPException(status_code=404, detail="Download not found")
 
 
 @app.get("/sdapi/v1/options")
